@@ -1,0 +1,19 @@
+load('/Users/avijay/Documents/Figures_MF_Analysis/Run2019-3-6-17-16-46.533.mat')
+>> fs=8000;
+dt=1/fs;
+signal=data(:,2);
+time=[0:length(signal)-1]*dt;
+figure(1)
+
+subplot(3,1,1)
+plot(time,signal)
+%xlabel('time (s)')
+ylabel('voltage (V)')
+title('Time series of recorded hydrophone signal')
+
+subplot(3,1,2)
+plot_spectrogram(signal,fs)
+ylim([0 500])
+%xlabel('time (s)')
+ylabel('frequency (Hz)')
+title('Spectrogram of Recorded Signal')
