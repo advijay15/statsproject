@@ -1,84 +1,74 @@
-function Part1c_Analysis
+ function Part1c_Analysis
     % Part1c_Analysis.m
-    %
-    % This script loads each .mat file, extracts the time intervals
-    % you provided for cod knocks vs. grunts, computes duration, peak freq,
-    % bandwidth, etc. for each segment, then prints and averages them.
-    %
-    % Make sure your .mat files are in the current folder or specify
-    % the correct folder path (e.g. 'Figures_MF_Analysis/Run2019-3-6-17-45-46.586.mat').
+    % Analyze knock and grunt fish sounds to compute signal characteristics.
+    fs = 8000;  % sampling frequency
 
-    fs = 8000;  % sampling frequency for your dataset
+    % ===============================
+    % KNOCK EVENTS
+    % ===============================
+    knockEvents = {
+        'Run2019-3-6-17-45-46.586.mat', 9.30, 9.35;
+        'Run2019-3-6-17-45-46.586.mat', 20.12, 20.14;
 
- % For knocks and grunts, each row is:
-% { 'filename.mat', startTime_in_seconds, endTime_in_seconds }
+        'Run2019-3-6-17-42-46.576.mat', 16.77, 16.79;
+        'Run2019-3-6-17-42-46.576.mat', 47.29, 47.31;
 
-% ===============================
-% KNOCK EVENTS (No nested braces)
-% ===============================
-knockEvents = {
-    'Run2019-3-6-17-45-46.586.mat', 9.30, 9.35;
-    'Run2019-3-6-17-45-46.586.mat', 20.12, 20.14;
+        'Run2019-3-6-17-16-46.533.mat', 42.75, 42.77;
+        'Run2019-3-6-17-16-46.533.mat', 57.55, 57.57;
 
-    'Run2019-3-6-17-42-46.576.mat', 16.77, 16.79;
-    'Run2019-3-6-17-42-46.576.mat', 47.29, 47.31;
+        'Run2019-3-6-17-14-46.523.mat', 18.17, 18.18;
+        'Run2019-3-6-17-14-46.523.mat', 34.81, 34.83;
 
-    'Run2019-3-6-17-16-46.533.mat', 42.75, 42.77;
-    'Run2019-3-6-17-16-46.533.mat', 57.55, 57.57;
+        'Run2019-3-6-17-11-46.533.mat', 11.90, 11.92;
+        'Run2019-3-6-17-11-46.533.mat', 7.73,  7.75
+    };
 
-    'Run2019-3-6-17-14-46.523.mat', 18.17, 18.18;
-    'Run2019-3-6-17-14-46.523.mat', 34.81, 34.83;
+    % ===============================
+    % GRUNT EVENTS
+    % ===============================
+    gruntEvents = {
+        'Run2019-3-6-17-45-46.586.mat', 34.88, 35.00;
+        'Run2019-3-6-17-45-46.586.mat', 29.20, 29.60;
 
-    'Run2019-3-6-17-11-46.533.mat', 11.90, 11.92;
-    'Run2019-3-6-17-11-46.533.mat', 7.73,  7.75
-};
+        'Run2019-3-6-17-42-46.576.mat', 24.15, 24.25;
+        'Run2019-3-6-17-42-46.576.mat', 55.60, 55.90;
 
-% ===============================
-% GRUNT EVENTS (No nested braces)
-% ===============================
-gruntEvents = {
-    'Run2019-3-6-17-45-46.586.mat', 34.88, 35.00;
-    'Run2019-3-6-17-45-46.586.mat', 29.20, 29.60;
+        'Run2019-3-6-17-16-46.533.mat', 28.82, 28.90;
+        'Run2019-3-6-17-16-46.533.mat', 39.32, 39.50;
 
-    'Run2019-3-6-17-42-46.576.mat', 24.15, 24.25;
-    'Run2019-3-6-17-42-46.576.mat', 55.60, 55.90;
+        'Run2019-3-6-17-14-46.523.mat', 27.84, 28.10;
+        'Run2019-3-6-17-14-46.523.mat', 39.62, 39.70;
 
-    'Run2019-3-6-17-16-46.533.mat', 28.82, 28.90;
-    'Run2019-3-6-17-16-46.533.mat', 39.32, 39.50;
+        'Run2019-3-6-17-11-46.533.mat', 33.00, 33.20;
+        'Run2019-3-6-17-11-46.533.mat', 25.43, 25.45
+    };
 
-    'Run2019-3-6-17-14-46.523.mat', 27.84, 28.10;
-    'Run2019-3-6-17-14-46.523.mat', 39.62, 39.70;
-
-    'Run2019-3-6-17-11-46.533.mat', 33.00, 33.20;
-    'Run2019-3-6-17-11-46.533.mat', 25.43, 25.45
-};
-
-
-
-
-    % Analyze knocks vs. grunts
+    % Analyze events
     knockStatsArray = processEvents(knockEvents, fs, 'KNOCK');
     gruntStatsArray = processEvents(gruntEvents, fs, 'GRUNT');
 
-    %----------------------------------------------------------------------
-    % 3) Compute Averages for Knocks vs. Grunts
-    %----------------------------------------------------------------------
+    % === Averages for KNOCKS ===
     if ~isempty(knockStatsArray)
-        [avgDurK, avgPeakK, avgBWK] = computeAverages(knockStatsArray);
+        [avgDurK, avgPeakK, avgBWK, avgLowK, avgHighK] = computeAverages(knockStatsArray);
         fprintf('\n=== KNOCKS AVERAGE RESULTS ===\n');
-        fprintf('Avg Duration (s):        %.4f\n',  avgDurK);
-        fprintf('Avg Peak Frequency (Hz): %.2f\n',  avgPeakK);
-        fprintf('Avg Bandwidth (Hz):      %.2f\n',  avgBWK);
+        fprintf('Avg Duration (s):         %.4f\n', avgDurK);
+        fprintf('Avg Peak Frequency (Hz):  %.2f\n', avgPeakK);
+        fprintf('Avg Bandwidth (Hz):       %.2f\n', avgBWK);
+        fprintf('Avg Lower Frequency (Hz): %.2f\n', avgLowK);
+        fprintf('Avg Upper Frequency (Hz): %.2f\n', avgHighK);
     else
         fprintf('\n(No knock events provided.)\n');
     end
 
+    % === Averages for GRUNTS ===
     if ~isempty(gruntStatsArray)
-        [avgDurG, avgPeakG, avgBWG] = computeAverages(gruntStatsArray);
+        [avgDurG, avgPeakG, avgBWG, avgLowG, avgHighG] = computeAverages(gruntStatsArray);
         fprintf('\n=== GRUNTS AVERAGE RESULTS ===\n');
-        fprintf('Avg Duration (s):        %.4f\n',  avgDurG);
-        fprintf('Avg Peak Frequency (Hz): %.2f\n',  avgPeakG);
-        fprintf('Avg Bandwidth (Hz):      %.2f\n',  avgBWG);
+        fprintf('Avg Duration (s):         %.4f\n', avgDurG);
+        fprintf('Avg Peak Frequency (Hz):  %.2f\n', avgPeakG);
+        fprintf('Avg Bandwidth (Hz):       %.2f\n', avgBWG);
+        fprintf('Avg Lower Frequency (Hz): %.2f\n', avgLowG);
+        fprintf('Avg Upper Frequency (Hz): %.2f\n', avgHighG);
     else
         fprintf('\n(No grunt events provided.)\n');
     end
@@ -86,15 +76,13 @@ gruntEvents = {
     fprintf('\nDone.\n');
 end
 
-%=======================================================================
-% Helper function: Loop through each event, load file, extract segment,
-% compute parameters using "Compute_Fish_Params" below.
-%=======================================================================
+% ----------------------------------------------------------------------
 function statsArray = processEvents(events, fs, label)
     if isempty(events)
         statsArray = [];
         return;
     end
+
     statsArray = struct( ...
         'duration_sec',  {}, ...
         'peak_freq_hz',  {}, ...
@@ -105,6 +93,7 @@ function statsArray = processEvents(events, fs, label)
         'start_time',    {}, ...
         'end_time',      {} ...
     );
+
     fprintf('\n--- Processing %s EVENTS ---\n', label);
 
     for i = 1:size(events,1)
@@ -114,50 +103,42 @@ function statsArray = processEvents(events, fs, label)
 
         fprintf('\nEvent #%d: %s, Time=%.2f to %.2f s\n', i, fileName, startT, endT);
 
-        % Load the .mat file
+        % Load file and extract signal
         dataStruct = load(fileName);
         signal = dataStruct.data(:,2);  % channel 2
         N = length(signal);
 
-        % Convert start/end times to indices
+        % Get time window indices
         startIdx = max(1, round(startT*fs));
         endIdx   = min(N, round(endT*fs));
-
-        % Extract the segment
         segment = signal(startIdx:endIdx);
 
-        % Compute the parameters
+        % Compute stats
         stats = Compute_Fish_Params(segment, fs);
-
-        % Store the file name + time intervals
         stats.filename   = fileName;
         stats.start_time = startT;
         stats.end_time   = endT;
 
-        % Append to the array
-        statsArray(i) = stats; 
+        statsArray(i) = stats;
         disp(stats);
     end
 end
 
-%=======================================================================
-% Helper function: Compute duration, peak frequency, bandwidth, etc.
-%=======================================================================
+% ----------------------------------------------------------------------
 function stats = Compute_Fish_Params(segment, fs)
     dt = 1/fs;
     N  = length(segment);
 
-    % 1) Duration (threshold approach)
+    % Duration calculation
     threshold = 0.1 * max(abs(segment));
     idx = find(abs(segment) > threshold);
-
     if isempty(idx)
-       duration_sec = 0;
+        duration_sec = 0;
     else
-       duration_sec = (idx(end) - idx(1) + 1)*dt;
+        duration_sec = (idx(end) - idx(1) + 1) * dt;
     end
 
-    % 2) FFT to find peak freq
+    % FFT and spectrum
     w = hamming(N);
     seg_win = segment .* w;
     SEG = fft(seg_win);
@@ -168,9 +149,8 @@ function stats = Compute_Fish_Params(segment, fs)
     [peak_val, peak_idx] = max(SEG_mag);
     peak_freq = freqs(peak_idx);
 
-    % 3) Bandwidth via -3 dB
+    % Bandwidth estimation (-3dB)
     amp_3dB = peak_val / sqrt(2);
-
     low_idx = peak_idx;
     while low_idx > 1 && SEG_mag(low_idx) > amp_3dB
         low_idx = low_idx - 1;
@@ -182,10 +162,8 @@ function stats = Compute_Fish_Params(segment, fs)
         high_idx = high_idx + 1;
     end
     upper_freq = freqs(high_idx);
-
     bandwidth = upper_freq - lower_freq;
 
-    % Store results
     stats.duration_sec   = duration_sec;
     stats.peak_freq_hz   = peak_freq;
     stats.lower_freq_hz  = lower_freq;
@@ -193,15 +171,17 @@ function stats = Compute_Fish_Params(segment, fs)
     stats.bandwidth_hz   = bandwidth;
 end
 
-%=======================================================================
-% Helper function: Compute average of durations, peak freqs, bandwidths
-%=======================================================================
-function [avgDur, avgPeak, avgBW] = computeAverages(statsArray)
+% ----------------------------------------------------------------------
+function [avgDur, avgPeak, avgBW, avgLow, avgHigh] = computeAverages(statsArray)
     durations = [statsArray.duration_sec];
     peaks     = [statsArray.peak_freq_hz];
     bws       = [statsArray.bandwidth_hz];
+    lows      = [statsArray.lower_freq_hz];
+    highs     = [statsArray.upper_freq_hz];
 
     avgDur  = mean(durations);
     avgPeak = mean(peaks);
     avgBW   = mean(bws);
+    avgLow  = mean(lows);
+    avgHigh = mean(highs);
 end
