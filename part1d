@@ -1,0 +1,73 @@
+function Part1d_Analysis
+    fs = 8000;
+
+    % Knock and Grunt Events (same as before)
+    knockEvents = {
+        'Run2019-3-6-17-45-46.586.mat', 9.30, 9.35;
+        'Run2019-3-6-17-45-46.586.mat', 20.12, 20.14;
+        'Run2019-3-6-17-42-46.576.mat', 16.77, 16.79;
+        'Run2019-3-6-17-42-46.576.mat', 47.29, 47.31;
+        'Run2019-3-6-17-16-46.533.mat', 42.75, 42.77;
+        'Run2019-3-6-17-16-46.533.mat', 57.55, 57.57;
+        'Run2019-3-6-17-14-46.523.mat', 18.17, 18.18;
+        'Run2019-3-6-17-14-46.523.mat', 34.81, 34.83;
+        'Run2019-3-6-17-11-46.533.mat', 11.90, 11.92;
+        'Run2019-3-6-17-11-46.533.mat', 7.73,  7.75
+    };
+
+    gruntEvents = {
+        'Run2019-3-6-17-45-46.586.mat', 34.88, 35.00;
+        'Run2019-3-6-17-45-46.586.mat', 29.20, 29.60;
+        'Run2019-3-6-17-42-46.576.mat', 24.15, 24.25;
+        'Run2019-3-6-17-42-46.576.mat', 55.60, 55.90;
+        'Run2019-3-6-17-16-46.533.mat', 28.82, 28.90;
+        'Run2019-3-6-17-16-46.533.mat', 39.32, 39.50;
+        'Run2019-3-6-17-14-46.523.mat', 27.84, 28.10;
+        'Run2019-3-6-17-14-46.523.mat', 39.62, 39.70;
+        'Run2019-3-6-17-11-46.533.mat', 33.00, 33.20;
+        'Run2019-3-6-17-11-46.533.mat', 25.43, 25.45
+    };
+
+    % Get averaged FFTs
+    [avgFreqKnock, avgSpecKnock] = averageSpectrum(knockEvents, fs);
+    [avgFreqGrunt, avgSpecGrunt] = averageSpectrum(gruntEvents, fs);
+
+    % Plot the Bode plot
+    figure;
+    semilogx(avgFreqKnock, 10*log10(avgSpecKnock), 'b', 'LineWidth', 2);
+    hold on;
+    semilogx(avgFreqGrunt, 10*log10(avgSpecGrunt), 'r', 'LineWidth', 2);
+    xlabel('Frequency (Hz)');
+    ylabel('Magnitude (dB)');
+    title('Bode Plot of Average Knock vs Grunt Spectrum');
+    legend('Knock', 'Grunt');
+    grid on;
+end
+
+function [avgFreq, avgSpectrum] = averageSpectrum(events, fs)
+    Nfft = 1024;  % consistent FFT length for all signals
+    allSpecs = zeros(length(events), Nfft/2);  % store magnitude-squared
+    for i = 1:size(events,1)
+        file = events{i,1};
+        startT = events{i,2};
+        endT = events{i,3};
+
+        dataStruct = load(file);
+        signal = dataStruct.data(:,2);
+        startIdx = max(1, round(startT * fs));
+        endIdx = min(length(signal), round(endT * fs));
+        segment = signal(startIdx:endIdx);
+
+        % Apply window and zero pad
+        segment = segment(:) .* hamming(length(segment));
+        segmentZP = zeros(Nfft,1);
+        segmentZP(1:length(segment)) = segment;
+
+        % FFT
+        fftOut = fft(segmentZP);
+        fftMag = abs(fftOut(1:Nfft/2)).^2;  % magnitude-squared
+        allSpecs(i,:) = fftMag;
+    end
+    avgSpectrum = mean(allSpecs, 1);  % average intensity
+    avgFreq = (0:Nfft/2-1)*(fs/Nfft);
+end
