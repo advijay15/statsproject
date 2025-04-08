@@ -1,0 +1,60 @@
+% === PART 2(d): Overlay time-domain plots for comparison ===
+
+% Define matched files and peak times from sweep
+files = {
+    'Run2019-3-6-16-42-24.481.mat', 5.32;
+    'Run2019-3-6-16-37-24.47.mat',  7.40;
+    'Run2019-3-6-17-16-46.533.mat', 33.93;
+};
+
+% Load online cod grunt template
+[templateSignal, templateFs] = audioread('1407,3005_HawkinsT-1978_Gadus-morhua_Grunt-Aquarium.wav');
+
+% Extract a clean segment of template (you can adjust this)
+templateSegment = templateSignal(round(1.2*templateFs):round(1.8*templateFs));
+templateSegment = templateSegment - mean(templateSegment);
+templateSegment = templateSegment / max(abs(templateSegment)); % normalize
+templateTime = (0:length(templateSegment)-1)/templateFs;
+
+% Initialize figure
+figure;
+hold on;
+colors = {'r', 'g', 'b'};  % for dataset signals
+legendLabels = {'Online Template'};
+
+% Plot template signal
+plot(templateTime, templateSegment, 'k', 'LineWidth', 2);
+
+% Sampling rate for dataset
+fs = 8000;
+dt = 1/fs;
+
+% Go through each matched dataset
+for i = 1:size(files,1)
+    fname = files{i,1};
+    peakTime = files{i,2};
+
+    % Load signal
+    data = load(fname);
+    signal = data.data(:,2);  % use channel 2
+    N = length(signal);
+
+    % Extract ±0.5 sec window around the peak
+    idxCenter = round(peakTime * fs);
+    idxStart = max(1, idxCenter - round(0.5*fs));
+    idxEnd   = min(N, idxCenter + round(0.5*fs));
+    segment = signal(idxStart:idxEnd);
+    segment = segment - mean(segment);
+    segment = segment / max(abs(segment));  % normalize
+    timeAxis = (0:length(segment)-1)/fs;
+
+    % Plot overlay
+    plot(timeAxis, segment, colors{i}, 'LineWidth', 1.5);
+    legendLabels{end+1} = sprintf('%s (%.2f s)', fname, peakTime);
+end
+
+xlabel('Time (s)');
+ylabel('Amplitude (normalized)');
+title('Overlay of Matched Cod Sounds vs. Online Cod Template');
+legend(legendLabels, 'Interpreter', 'none');
+grid on;
