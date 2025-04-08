@@ -1,0 +1,66 @@
+% Load online cod grunt sound as template
+[templateSignal, templateFs] = audioread('1407,3005_HawkinsT-1978_Gadus-morhua_Grunt-Aquarium.wav');
+
+% Resample if sampling rates differ from dataset
+targetFs = 8000;  % dataset Fs
+if templateFs ~= targetFs
+    templateSignal = resample(templateSignal, targetFs, templateFs);
+end
+
+% Normalize template
+templateSignal = templateSignal - mean(templateSignal);
+templateSignal = templateSignal / std(templateSignal);
+
+% Energy of template
+templateEnergy = sum(abs(templateSignal).^2);
+Ltemp = length(templateSignal);
+L2temp = round(Ltemp/2);
+
+% Open filelist
+fid = fopen('filelist.txt','r');
+fileList = textscan(fid, '%s');
+fclose(fid);
+
+fileList = fileList{1};
+
+for i = 1:length(fileList)
+    % Load hydrophone .mat file
+    dataStruct = load(fileList{i});
+    signal = dataStruct.data(:,2);  % channel 2
+    signal = signal - mean(signal);
+    signal = signal / std(signal);
+    
+    % Filter for noise reduction
+    signalFilt = lowpass(signal, 700, targetFs);
+    
+    % Calculate signal energy for normalization
+    sigEnergy = zeros(size(signalFilt));
+    for kk = 1:length(signalFilt)
+        if kk<L2temp
+            sigEnergy(kk) = sum(abs(signalFilt(1:kk+L2temp)).^2);
+        elseif kk>(length(signalFilt)-L2temp)
+            sigEnergy(kk) = sum(abs(signalFilt(kk-L2temp+1:end)).^2);
+        else
+            sigEnergy(kk) = sum(abs(signalFilt(kk-L2temp+1:kk+L2temp)).^2);
+        end
+    end
+    
+    % Normalized matched filter
+    mfRaw = conv(signalFilt, flipud(templateSignal), 'same');
+    mfNorm = mfRaw ./ sqrt(templateEnergy * sigEnergy);
+    
+    % Plot
+    time = (0:length(signalFilt)-1)/targetFs;
+    figure;
+    plot(time, mfNorm);
+    xlabel('Time (s)');
+    ylabel('Matched Filter Output');
+    title(['Matched Filter Output for: ', fileList{i}], 'Interpreter', 'none');
+    ylim([-1 1]);
+    grid on;
+    
+    % Optional: highlight peaks over threshold
+    hold on;
+    threshold = 0.8;
+    yline(threshold, 'k--');
+end
