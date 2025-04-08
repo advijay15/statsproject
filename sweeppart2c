@@ -1,0 +1,72 @@
+function MF_Sweep_Debug()
+    % Matched filter sweep with dynamic debug and plot
+    fs = 8000;              
+    dt = 1/fs;
+
+    %% === Load & normalize cod template ===
+    [templateSignal, templateFs] = audioread('1407,3005_HawkinsT-1978_Gadus-morhua_Grunt-Aquarium.wav');
+
+    if size(templateSignal,2) > 1
+        templateSignal = templateSignal(:,1);  % mono
+    end
+
+    if templateFs ~= fs
+        templateSignal = resample(templateSignal, fs, templateFs);
+    end
+
+    templateSignal = templateSignal / max(abs(templateSignal));  % normalize
+    template_energy = sum(abs(templateSignal).^2);
+    Ltemplate = length(templateSignal);
+    L2temp = round(Ltemplate/2);
+
+    %% === Load list of data files ===
+    fid = fopen('filelist.txt', 'r');
+    filenames = textscan(fid, '%s');
+    fclose(fid);
+    filenames = filenames{1};
+
+    %% === Loop through each file ===
+    for i = 1:length(filenames)
+        fname = filenames{i};
+        fprintf('\n📂 Checking file: %s\n', fname);
+        load(fname);  % loads 'data'
+
+        signal = data(:,2);
+        time = (0:length(signal)-1) * dt;
+
+        % === Filter and energy ===
+        sigfilt = lowpass(signal, 700, fs);
+        sigfilt_energy = movsum(abs(sigfilt).^2, [L2temp L2temp]);
+
+        % === Matched filtering ===
+        out1 = conv(sigfilt, flipud(templateSignal), 'same');
+        norm_energy = 1 ./ sqrt(template_energy .* sigfilt_energy + eps);
+        out2 = out1 .* norm_energy;
+
+        % === Peak info ===
+        [max_val, max_idx] = max(out2);
+        peak_time = time(max_idx);
+        fprintf('  🔎 Max MF peak value: %.3f at %.2f sec\n', max_val, peak_time);
+
+        if max_val > 0.3
+            fprintf('  ✅ Potential match around %.2f sec\n', peak_time);
+        else
+            fprintf('  ⚠️ No strong match (max < 0.3)\n');
+        end
+
+        % === Plotting output ===
+        figure;
+        plot(time, out2);
+        xlabel('Time (s)');
+        ylabel('Matched Filter Output');
+        title(['MF Output: ', fname], 'Interpreter', 'none');
+        grid on;
+        xlim([0 time(end)]);
+        ylim([-1 1]);
+
+        % Optional: Pause between files
+        pause(1);
+    end
+
+    fprintf('\n✅ Sweep Complete.\n');
+end
