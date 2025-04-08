@@ -1,0 +1,52 @@
+function Plot_MF_Examples()
+    fs = 8000;
+    dt = 1/fs;
+
+    % Load and normalize the online cod sound template
+    [templateSignal, templateFs] = audioread('1407,3005_HawkinsT-1978_Gadus-morhua_Grunt-Aquarium.wav');
+    if templateFs ~= fs
+        templateSignal = resample(templateSignal, fs, templateFs);
+    end
+    templateSignal = templateSignal(:,1);  % mono
+    templateSignal = templateSignal / max(abs(templateSignal));
+    template_energy = sum(abs(templateSignal).^2);
+    Ltemplate = length(templateSignal);
+    L2temp = round(Ltemplate / 2);
+
+    % === Your 3 chosen files with best MF peaks ===
+    files = {
+        'Run2019-3-6-16-42-24.481.mat', 5.32;
+        'Run2019-3-6-16-37-24.47.mat', 7.40;
+        'Run2019-3-6-17-16-46.533.mat', 33.93
+    };
+
+    for i = 1:size(files,1)
+        fname = files{i,1};
+        peakTime = files{i,2};
+        
+        load(fname);
+        signal = data(:,2);
+        time = (0:length(signal)-1)*dt;
+
+        % Preprocessing: Low-pass and filter
+        sigfilt = lowpass(signal, 700, fs);
+        sigfilt_energy = movsum(abs(sigfilt).^2, [L2temp L2temp]);
+        
+        % Matched filter computation
+        out1 = conv(sigfilt, flipud(templateSignal), 'same');
+        norm_energy = 1 ./ sqrt(template_energy .* sigfilt_energy + eps);
+        out2 = out1 .* norm_energy;
+
+        % Plot matched filter output
+        figure;
+        plot(time, out2, 'b');
+        hold on;
+        yline(0.3, 'k--', 'Threshold = 0.3');
+        xline(peakTime, 'r--', sprintf('Peak at %.2f s', peakTime));
+        xlabel('Time (s)');
+        ylabel('Normalized MF Output');
+        title(['Matched Filter Output: ', fname], 'Interpreter', 'none');
+        ylim([-1 1]);
+        grid on;
+    end
+end
