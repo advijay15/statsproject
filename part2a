@@ -1,19 +1,37 @@
-load('/Users/avijay/Documents/Figures_MF_Analysis/Run2019-3-6-17-16-46.533.mat')
->> fs=8000;
-dt=1/fs;
-signal=data(:,2);
-time=[0:length(signal)-1]*dt;
-figure(1)
+% Load the cod sound template (replace with your actual file name)
+[templateSignal, templateFs] = audioread('1407,3005_HawkinsT-1978_Gadus-morhua_Grunt-Aquarium.wav');
 
-subplot(3,1,1)
-plot(time,signal)
-%xlabel('time (s)')
-ylabel('voltage (V)')
-title('Time series of recorded hydrophone signal')
+% Time axis
+t = (0:length(templateSignal)-1) / templateFs;
 
-subplot(3,1,2)
-plot_spectrogram(signal,fs)
-ylim([0 500])
-%xlabel('time (s)')
-ylabel('frequency (Hz)')
-title('Spectrogram of Recorded Signal')
+% Plot time-series
+figure;
+subplot(2,1,1)
+plot(t, templateSignal)
+xlabel('Time (s)')
+ylabel('Amplitude')
+title('Time-Domain Plot of Cod Sound Template')
+xlim([0 max(t)]); grid on;
+
+% Spectrogram settings
+window = 512;
+noverlap = 256;
+nfft = 2048;
+
+% Compute spectrogram
+[s, f, tt, p] = spectrogram(templateSignal, window, noverlap, nfft, templateFs, 'yaxis');
+
+% Convert power to dB
+p_db = 10*log10(abs(p));
+
+% Plot spectrogram in dB
+subplot(2,1,2)
+surf(tt, f, p_db, 'EdgeColor', 'none');
+axis tight;
+view(0, 90);
+ylim([0 1000]);  % Adjust if needed based on frequency content
+xlabel('Time (s)');
+ylabel('Frequency (Hz)');
+title('Spectrogram of Cod Sound Template');
+colorbar;
+colormap(jet);  % optional: makes it colorful like the reference
